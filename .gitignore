@@ -1,0 +1,50 @@
+# Local secrets
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+appsettings.*.local.json
+secrets.json
+
+# Frontend dependencies and output
+node_modules/
+dist/
+.vite/
+coverage/
+*.tsbuildinfo
+
+# .NET output and local state
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.keys/
+
+# Test and runtime output
+TestResults/
+*.coverage
+*.coveragexml
+*.trx
+*.log
+logs/
+
+# Editors
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+
+# Operating systems
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+~$*
+
