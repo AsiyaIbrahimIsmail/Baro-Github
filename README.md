@@ -47,7 +47,6 @@ available, local setup instructions will be documented here.
 
 Expected prerequisites:
 
-- Node.js 20 or newer
 - .NET SDK 10
 - MySQL 8
 - Git
