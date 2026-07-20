@@ -12,6 +12,7 @@ export function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [adminCode, setAdminCode] = useState("");
+  const [showAdminCode, setShowAdminCode] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -88,6 +89,8 @@ export function AuthPage() {
                 type="button"
                 onClick={() => {
                   setMode(item);
+                  setAdminCode("");
+                  setShowAdminCode(false);
                   setError("");
                 }}
                 className={`py-3 text-sm font-medium border-b-2 ${
@@ -114,9 +117,20 @@ export function AuthPage() {
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
             </Field>
             {mode === "register" && (
-              <Field icon={<LockKeyhole />} label="Admin code (optional)">
-                <input type="password" value={adminCode} onChange={(e) => setAdminCode(e.target.value)} />
-              </Field>
+              <div className="space-y-3">
+                {showAdminCode ? (
+                  <Field icon={<LockKeyhole />} label="Admin code">
+                    <input type="password" value={adminCode} onChange={(e) => setAdminCode(e.target.value)} />
+                  </Field>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setShowAdminCode((current) => !current)}
+                  className="text-xs text-white/45 hover:text-white transition-colors"
+                >
+                  {showAdminCode ? "Register as learner instead" : "I have an admin code"}
+                </button>
+              </div>
             )}
 
             {error && (
