@@ -6,24 +6,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api/auth": {
-        target: "http://localhost:5000",
-        changeOrigin: true,
-      },
-      "/api/lessons": {
-        target: "http://localhost:5000",
-        changeOrigin: true,
-      },
-      "/api/progress": {
-        target: "http://localhost:5000",
-        changeOrigin: true,
-      },
-      "/api/ai-tutor": {
-        target: "http://localhost:5000",
-        changeOrigin: true,
-      },
       "/api": {
-        target: "http://localhost:3001",
+        target: "http://localhost:5000",
         changeOrigin: true,
       },
     },
