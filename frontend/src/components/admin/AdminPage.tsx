@@ -5,11 +5,22 @@ import {
   Loader2,
   Plus,
   Save,
+  ShieldCheck,
   Trash2,
+  UserMinus,
+  Users,
 } from "lucide-react";
 import { useLessons } from "../../context/LessonsContext";
-import { createLesson, deleteLesson, updateLesson } from "../../services/api";
-import type { Lesson, SaveLessonInput } from "../../types";
+import { useAuth } from "../../context/AuthContext";
+import {
+  createLesson,
+  deleteAdminUser,
+  deleteLesson,
+  fetchAdminUsers,
+  updateAdminUserRole,
+  updateLesson,
+} from "../../services/api";
+import type { AdminUser, Lesson, SaveLessonInput } from "../../types";
 import { ThemeToggle } from "../ui/ThemeToggle";
 
 interface AdminPageProps {
@@ -42,6 +53,7 @@ function toForm(lesson: Lesson): SaveLessonInput {
 
 export function AdminPage({ onClose }: AdminPageProps) {
   const { lessons, reload } = useLessons();
+  const [section, setSection] = useState<"lessons" | "users">("lessons");
   const [selectedId, setSelectedId] = useState<number | null>(lessons[0]?.id ?? null);
   const selected = useMemo(
     () => lessons.find((lesson) => lesson.id === selectedId) ?? null,
@@ -104,19 +116,46 @@ export function AdminPage({ onClose }: AdminPageProps) {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="font-semibold">Lesson administration</h1>
-            <p className="text-xs text-white/40">Create and maintain course content</p>
+            <h1 className="font-semibold">Administration</h1>
+            <p className="text-xs text-white/40">
+              {section === "lessons"
+                ? "Create and maintain course content"
+                : "Manage learner and admin accounts"}
+            </p>
           </div>
         </div>
-        <button
-          onClick={() => setSelectedId(null)}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium"
-        >
-          <Plus className="w-4 h-4" /> New lesson
-        </button>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSection("lessons")}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+              section === "lessons" ? "bg-accent text-on-accent" : "bg-white/5 text-white/65"
+            }`}
+          >
+            <BookOpen className="w-4 h-4" /> Lessons
+          </button>
+          <button
+            onClick={() => setSection("users")}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+              section === "users" ? "bg-accent text-on-accent" : "bg-white/5 text-white/65"
+            }`}
+          >
+            <Users className="w-4 h-4" /> Users
+          </button>
+          {section === "lessons" && (
+            <button
+              onClick={() => setSelectedId(null)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" /> New lesson
+            </button>
+          )}
+          <ThemeToggle />
+        </div>
       </header>
 
+      {section === "users" ? (
+        <UserAdministration />
+      ) : (
       <div className="grid lg:grid-cols-[280px_minmax(0,1fr)] min-h-[calc(100vh-4rem)]">
         <aside className="border-r border-glass-border p-3 bg-surface-raised/60 overflow-y-auto max-h-[calc(100vh-4rem)]">
           <p className="px-3 py-2 text-xs uppercase text-white/35">Lessons</p>
@@ -202,6 +241,7 @@ export function AdminPage({ onClose }: AdminPageProps) {
           </form>
         </main>
       </div>
+      )}
     </div>
   );
 }
@@ -228,5 +268,147 @@ function TextArea({ label, value, rows, onChange }: { label: string; value: stri
       <span className="block text-xs text-white/50 mb-1.5">{label}</span>
       <textarea required rows={rows} value={value} onChange={(e) => onChange(e.target.value)} className={`${inputClass} resize-y font-mono leading-relaxed`} />
     </label>
+  );
+}
+
+function UserAdministration() {
+  const { user: currentUser } = useAuth();
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+
+  const reloadUsers = async () => {
+    setLoading(true);
+    setMessage("");
+    try {
+      setUsers(await fetchAdminUsers());
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not load users.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void reloadUsers();
+  }, []);
+
+  const changeRole = async (adminUser: AdminUser, role: AdminUser["role"]) => {
+    if (adminUser.role === role) return;
+    setSavingId(adminUser.id);
+    setMessage("");
+    try {
+      const updated = await updateAdminUserRole(adminUser.id, role);
+      setUsers((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item))
+      );
+      setMessage(`${adminUser.name} is now ${role}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not update role.");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const removeUser = async (adminUser: AdminUser) => {
+    if (!window.confirm(`Delete ${adminUser.name}? Their progress and AI chat history will also be removed.`)) {
+      return;
+    }
+
+    setSavingId(adminUser.id);
+    setMessage("");
+    try {
+      await deleteAdminUser(adminUser.id);
+      setUsers((current) => current.filter((item) => item.id !== adminUser.id));
+      setMessage(`${adminUser.name} was deleted.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not delete user.");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  return (
+    <main className="min-h-[calc(100vh-4rem)] p-4 lg:p-7 overflow-y-auto">
+      <section className="max-w-6xl mx-auto space-y-4">
+        <div className="flex items-center gap-3 border-b border-glass-border pb-4">
+          <ShieldCheck className="w-5 h-5 text-accent-glow" />
+          <div>
+            <h2 className="text-lg font-semibold">User management</h2>
+            <p className="text-sm text-white/45">Promote learners, demote admins, or remove accounts.</p>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center gap-2 text-white/55">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Loading users
+          </div>
+        ) : (
+          <div className="overflow-x-auto border border-glass-border rounded-lg">
+            <table className="w-full text-sm">
+              <thead className="bg-white/5 text-white/45">
+                <tr>
+                  <th className="text-left font-medium px-4 py-3">User</th>
+                  <th className="text-left font-medium px-4 py-3">Role</th>
+                  <th className="text-left font-medium px-4 py-3">Language</th>
+                  <th className="text-left font-medium px-4 py-3">Progress</th>
+                  <th className="text-left font-medium px-4 py-3">AI chats</th>
+                  <th className="text-right font-medium px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-glass-border">
+                {users.map((adminUser) => {
+                  const isCurrentUser = adminUser.id === currentUser?.id;
+                  return (
+                    <tr key={adminUser.id} className="text-white/70">
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-white">{adminUser.name}</p>
+                        <p className="text-xs text-white/40">{adminUser.email}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={adminUser.role}
+                          disabled={savingId === adminUser.id}
+                          onChange={(event) =>
+                            void changeRole(adminUser, event.target.value as AdminUser["role"])
+                          }
+                          className="px-3 py-2 rounded-lg bg-black/25 border border-glass-border text-white outline-none focus:border-accent/60"
+                        >
+                          <option value="Learner">Learner</option>
+                          <option value="Admin">Admin</option>
+                        </select>
+                      </td>
+                      <td className="px-4 py-3 uppercase">{adminUser.currentLanguage}</td>
+                      <td className="px-4 py-3">{adminUser.completedLessons} lessons</td>
+                      <td className="px-4 py-3">{adminUser.chatMessages}</td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          disabled={isCurrentUser || savingId === adminUser.id}
+                          onClick={() => void removeUser(adminUser)}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-500/25 text-red-300 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                          title={isCurrentUser ? "You cannot delete your own account" : "Delete user"}
+                        >
+                          {savingId === adminUser.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <UserMinus className="w-4 h-4" />
+                          )}
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {message && <p className="text-sm text-white/60 border-t border-glass-border pt-4">{message}</p>}
+      </section>
+    </main>
   );
 }
