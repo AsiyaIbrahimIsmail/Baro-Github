@@ -72,6 +72,17 @@ export interface AuthResponse {
   user: AuthUser;
 }
 
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  role: "Admin" | "Learner";
+  currentLanguage: Language;
+  createdAt: string;
+  completedLessons: number;
+  chatMessages: number;
+}
+
 export interface SaveLessonInput {
   title: { en: string; so: string };
   description: { en: string; so: string };

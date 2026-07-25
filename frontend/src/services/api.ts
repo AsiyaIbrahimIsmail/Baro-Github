@@ -1,4 +1,5 @@
 import type {
+  AdminUser,
   AuthResponse,
   Language,
   Lesson,
@@ -77,6 +78,35 @@ export async function updateLesson(
 
 export async function deleteLesson(id: number): Promise<void> {
   const res = await fetch(`${API_BASE}/lessons/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await readError(res));
+}
+
+export async function fetchAdminUsers(): Promise<AdminUser[]> {
+  const res = await fetch(`${API_BASE}/users`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await readError(res));
+  return (await res.json()) as AdminUser[];
+}
+
+export async function updateAdminUserRole(
+  id: string,
+  role: AdminUser["role"]
+): Promise<AdminUser> {
+  const res = await fetch(`${API_BASE}/users/${id}/role`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) throw new Error(await readError(res));
+  return (await res.json()) as AdminUser;
+}
+
+export async function deleteAdminUser(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/users/${id}`, {
     method: "DELETE",
     headers: authHeaders(),
   });
