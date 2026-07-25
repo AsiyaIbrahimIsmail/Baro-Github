@@ -45,6 +45,14 @@ export async function register(input: {
   return (await res.json()) as AuthResponse;
 }
 
+export async function fetchAdminStatus(): Promise<{
+  adminRegistrationAvailable: boolean;
+}> {
+  const res = await fetch(`${API_BASE}/auth/admin-status`);
+  if (!res.ok) throw new Error(await readError(res));
+  return (await res.json()) as { adminRegistrationAvailable: boolean };
+}
+
 export async function fetchLessons(): Promise<Lesson[]> {
   const res = await fetch(`${API_BASE}/lessons`);
   if (!res.ok) {

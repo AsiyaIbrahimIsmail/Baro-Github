@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { GitBranch, Loader2, LockKeyhole, Mail, User } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
+import { fetchAdminStatus } from "../../services/api";
 import { ThemeToggle } from "../ui/ThemeToggle";
 
 export function AuthPage() {
@@ -12,9 +13,30 @@ export function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [adminCode, setAdminCode] = useState("");
-  const [showAdminCode, setShowAdminCode] = useState(false);
+  const [showSetupCode, setShowSetupCode] = useState(false);
+  const [adminRegistrationAvailable, setAdminRegistrationAvailable] =
+    useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let isActive = true;
+    fetchAdminStatus()
+      .then((status) => {
+        if (isActive) {
+          setAdminRegistrationAvailable(status.adminRegistrationAvailable);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setAdminRegistrationAvailable(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -90,7 +112,7 @@ export function AuthPage() {
                 onClick={() => {
                   setMode(item);
                   setAdminCode("");
-                  setShowAdminCode(false);
+                  setShowSetupCode(false);
                   setError("");
                 }}
                 className={`py-3 text-sm font-medium border-b-2 ${
@@ -118,18 +140,20 @@ export function AuthPage() {
             </Field>
             {mode === "register" && (
               <div className="space-y-3">
-                {showAdminCode ? (
-                  <Field icon={<LockKeyhole />} label="Admin code">
+                {adminRegistrationAvailable && showSetupCode ? (
+                  <Field icon={<LockKeyhole />} label="Setup code">
                     <input type="password" value={adminCode} onChange={(e) => setAdminCode(e.target.value)} />
                   </Field>
                 ) : null}
-                <button
-                  type="button"
-                  onClick={() => setShowAdminCode((current) => !current)}
-                  className="text-xs text-white/45 hover:text-white transition-colors"
-                >
-                  {showAdminCode ? "Register as learner instead" : "I have an admin code"}
-                </button>
+                {adminRegistrationAvailable && (
+                  <button
+                    type="button"
+                    onClick={() => setShowSetupCode((current) => !current)}
+                    className="text-xs text-white/45 hover:text-white transition-colors"
+                  >
+                    {showSetupCode ? "Register as learner instead" : "Create the first admin account"}
+                  </button>
+                )}
               </div>
             )}
 

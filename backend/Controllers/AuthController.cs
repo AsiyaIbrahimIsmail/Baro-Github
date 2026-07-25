@@ -16,6 +16,13 @@ public sealed class AuthController(
     TokenService tokenService,
     IConfiguration configuration) : ControllerBase
 {
+    [HttpGet("admin-status")]
+    public async Task<ActionResult<AdminStatusResponse>> AdminStatus()
+    {
+        var adminExists = await db.Users.AnyAsync(x => x.Role == "Admin");
+        return Ok(new AdminStatusResponse(!adminExists));
+    }
+
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request)
     {
@@ -30,10 +37,22 @@ public sealed class AuthController(
             return Conflict(new { error = "An account with this email already exists." });
         }
 
+        var wantsAdmin = !string.IsNullOrWhiteSpace(request.AdminCode);
+        var adminExists = await db.Users.AnyAsync(x => x.Role == "Admin");
         var configuredAdminCode = configuration["Admin:RegistrationCode"];
-        var isAdmin = !string.IsNullOrWhiteSpace(request.AdminCode)
-            && !string.IsNullOrWhiteSpace(configuredAdminCode)
-            && request.AdminCode == configuredAdminCode;
+
+        if (wantsAdmin && adminExists)
+        {
+            return BadRequest(new { error = "An admin account already exists." });
+        }
+
+        if (wantsAdmin && (string.IsNullOrWhiteSpace(configuredAdminCode)
+            || request.AdminCode != configuredAdminCode))
+        {
+            return BadRequest(new { error = "Setup code is incorrect." });
+        }
+
+        var isAdmin = wantsAdmin && !adminExists;
         var user = new User
         {
             Name = request.Name.Trim(),

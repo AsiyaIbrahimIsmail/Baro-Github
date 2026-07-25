@@ -2,6 +2,7 @@ import { GitBranch, CheckCircle2, Circle, X } from "lucide-react";
 import { useLanguage } from "../../context/LanguageContext";
 import { useLessons } from "../../context/LessonsContext";
 import { useProgress } from "../../context/ProgressContext";
+import { useAuth } from "../../context/AuthContext";
 import { translations } from "../../i18n/translations";
 
 interface SidebarProps {
@@ -11,12 +12,22 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const { lessons } = useLessons();
   const { activeLessonId, setActiveLessonId, completedLessons, completedCount, totalLessons } =
     useProgress();
   const t = translations[language];
 
   const progressPercent = (completedCount / totalLessons) * 100;
+  const displayName = user?.name || "Baro Learner";
+  const displayEmail = user?.email || "learner@baro-git.dev";
+  const displayRole = user?.role || "Learner";
+  const initials = displayName
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <>
@@ -109,11 +120,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <div className="p-4 border-t border-glass-border">
         <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-glass-border">
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-accent-glow flex items-center justify-center text-on-accent font-bold text-sm">
-            BG
+            {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">Baro Learner</p>
-            <p className="text-xs text-white/40 truncate">learner@baro-git.dev</p>
+            <p className="text-sm font-medium text-white truncate">{displayName}</p>
+            <p className="text-xs text-white/40 truncate">
+              {displayRole} - {displayEmail}
+            </p>
           </div>
         </div>
       </div>
