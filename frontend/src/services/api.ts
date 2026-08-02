@@ -53,6 +53,18 @@ export async function fetchAdminStatus(): Promise<{
   return (await res.json()) as { adminRegistrationAvailable: boolean };
 }
 
+export async function forgotPassword(email: string): Promise<{
+  message: string;
+}> {
+  const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) throw new Error(await readError(res));
+  return (await res.json()) as { message: string };
+}
+
 export async function fetchLessons(): Promise<Lesson[]> {
   const res = await fetch(`${API_BASE}/lessons`);
   if (!res.ok) {
@@ -117,6 +129,18 @@ export async function deleteAdminUser(id: string): Promise<void> {
   const res = await fetch(`${API_BASE}/users/${id}`, {
     method: "DELETE",
     headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await readError(res));
+}
+
+export async function updateAdminUserPassword(
+  id: string,
+  newPassword: string
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/users/${id}/password`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ newPassword }),
   });
   if (!res.ok) throw new Error(await readError(res));
 }

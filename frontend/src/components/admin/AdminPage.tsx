@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   ArrowLeft,
   BookOpen,
+  KeyRound,
   Loader2,
   Plus,
   Save,
@@ -17,6 +18,7 @@ import {
   deleteAdminUser,
   deleteLesson,
   fetchAdminUsers,
+  updateAdminUserPassword,
   updateAdminUserRole,
   updateLesson,
 } from "../../services/api";
@@ -329,6 +331,28 @@ function UserAdministration() {
     }
   };
 
+  const resetUserPassword = async (adminUser: AdminUser) => {
+    const newPassword = window.prompt(
+      `Enter a temporary password for ${adminUser.name}. It must be at least 8 characters.`
+    );
+    if (!newPassword) return;
+    if (newPassword.length < 8) {
+      setMessage("Temporary password must be at least 8 characters.");
+      return;
+    }
+
+    setSavingId(adminUser.id);
+    setMessage("");
+    try {
+      await updateAdminUserPassword(adminUser.id, newPassword);
+      setMessage(`Password reset for ${adminUser.name}. Share the temporary password with them.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not reset password.");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   return (
     <main className="min-h-[calc(100vh-4rem)] p-4 lg:p-7 overflow-y-auto">
       <section className="max-w-6xl mx-auto space-y-4">
@@ -384,20 +408,36 @@ function UserAdministration() {
                       <td className="px-4 py-3">{adminUser.completedLessons} lessons</td>
                       <td className="px-4 py-3">{adminUser.chatMessages}</td>
                       <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          disabled={isCurrentUser || savingId === adminUser.id}
-                          onClick={() => void removeUser(adminUser)}
-                          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-500/25 text-red-300 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
-                          title={isCurrentUser ? "You cannot delete your own account" : "Delete user"}
-                        >
-                          {savingId === adminUser.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <UserMinus className="w-4 h-4" />
-                          )}
-                          Delete
-                        </button>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            disabled={savingId === adminUser.id}
+                            onClick={() => void resetUserPassword(adminUser)}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-accent/25 text-accent-glow hover:bg-accent/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Reset password"
+                          >
+                            {savingId === adminUser.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <KeyRound className="w-4 h-4" />
+                            )}
+                            Reset
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isCurrentUser || savingId === adminUser.id}
+                            onClick={() => void removeUser(adminUser)}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-500/25 text-red-300 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                            title={isCurrentUser ? "You cannot delete your own account" : "Delete user"}
+                          >
+                            {savingId === adminUser.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <UserMinus className="w-4 h-4" />
+                            )}
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

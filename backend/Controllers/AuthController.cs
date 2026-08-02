@@ -91,6 +91,21 @@ public sealed class AuthController(
         return Ok(CreateResponse(user));
     }
 
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult<ForgotPasswordResponse>> ForgotPassword(ForgotPasswordRequest request)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+        var userExists = await db.Users.AnyAsync(x => x.Email == email);
+        const string message = "If the account exists, ask an admin to reset the password from User management.";
+
+        if (!userExists)
+        {
+            return Ok(new ForgotPasswordResponse(message));
+        }
+
+        return Ok(new ForgotPasswordResponse(message));
+    }
+
     private AuthResponse CreateResponse(User user) => new(
         tokenService.Create(user),
         new AuthUserResponse(

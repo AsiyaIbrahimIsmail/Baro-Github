@@ -2,13 +2,15 @@ import { useEffect, useState, type FormEvent } from "react";
 import { GitBranch, Loader2, LockKeyhole, Mail, User } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
-import { fetchAdminStatus } from "../../services/api";
+import { fetchAdminStatus, forgotPassword } from "../../services/api";
 import { ThemeToggle } from "../ui/ThemeToggle";
+
+type AuthMode = "login" | "register" | "forgot";
 
 export function AuthPage() {
   const { language } = useLanguage();
   const { login, register } = useAuth();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<AuthMode>("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,6 +19,7 @@ export function AuthPage() {
   const [adminRegistrationAvailable, setAdminRegistrationAvailable] =
     useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -41,11 +44,12 @@ export function AuthPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
+    setMessage("");
     setLoading(true);
     try {
       if (mode === "login") {
         await login(email, password);
-      } else {
+      } else if (mode === "register") {
         await register({
           name,
           email,
@@ -53,6 +57,9 @@ export function AuthPage() {
           adminCode: adminCode || undefined,
           language,
         });
+      } else {
+        const response = await forgotPassword(email);
+        setMessage(response.message);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed");
@@ -96,16 +103,22 @@ export function AuthPage() {
             <span className="text-xl font-bold">Baro-Git</span>
           </div>
           <h2 className="text-2xl font-bold">
-            {mode === "login" ? "Welcome back" : "Create your account"}
+            {mode === "login"
+              ? "Welcome back"
+              : mode === "register"
+                ? "Create your account"
+                : "Reset your password"}
           </h2>
           <p className="text-sm text-white/45 mt-2">
             {mode === "login"
               ? "Continue your Git learning journey."
-              : "Your progress will be saved to your account."}
+              : mode === "register"
+                ? "Your progress will be saved to your account."
+                : "Enter your email, then ask an admin to reset your password."}
           </p>
 
-          <div className="grid grid-cols-2 mt-7 mb-6 border-b border-glass-border">
-            {(["login", "register"] as const).map((item) => (
+          <div className="grid grid-cols-3 mt-7 mb-6 border-b border-glass-border">
+            {(["login", "register", "forgot"] as const).map((item) => (
               <button
                 key={item}
                 type="button"
@@ -113,7 +126,9 @@ export function AuthPage() {
                   setMode(item);
                   setAdminCode("");
                   setShowSetupCode(false);
+                  setPassword("");
                   setError("");
+                  setMessage("");
                 }}
                 className={`py-3 text-sm font-medium border-b-2 ${
                   mode === item
@@ -121,7 +136,7 @@ export function AuthPage() {
                     : "border-transparent text-white/40"
                 }`}
               >
-                {item === "login" ? "Login" : "Register"}
+                {item === "login" ? "Login" : item === "register" ? "Register" : "Reset"}
               </button>
             ))}
           </div>
@@ -135,9 +150,11 @@ export function AuthPage() {
             <Field icon={<Mail />} label="Email">
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </Field>
-            <Field icon={<LockKeyhole />} label="Password">
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
-            </Field>
+            {mode !== "forgot" ? (
+              <Field icon={<LockKeyhole />} label="Password">
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
+              </Field>
+            ) : null}
             {mode === "register" && (
               <div className="space-y-3">
                 {adminRegistrationAvailable && showSetupCode ? (
@@ -157,6 +174,12 @@ export function AuthPage() {
               </div>
             )}
 
+            {message && (
+              <p className="text-sm text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 px-3 py-2 rounded-lg">
+                {message}
+              </p>
+            )}
+
             {error && (
               <p className="text-sm text-red-300 bg-red-500/10 border border-red-500/25 px-3 py-2 rounded-lg">
                 {error}
@@ -168,7 +191,11 @@ export function AuthPage() {
               className="w-full h-11 flex items-center justify-center gap-2 rounded-lg bg-accent text-on-accent font-medium hover:bg-accent-muted disabled:opacity-60"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {mode === "login" ? "Login" : "Create account"}
+              {mode === "login"
+                ? "Login"
+                : mode === "register"
+                  ? "Create account"
+                  : "Request reset"}
             </button>
           </form>
         </div>

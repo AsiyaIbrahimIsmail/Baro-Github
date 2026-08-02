@@ -11,3 +11,5 @@ public sealed record AdminUserResponse(
     int ChatMessages);
 
 public sealed record UpdateUserRoleRequest(string Role);
+
+public sealed record UpdateUserPasswordRequest(string NewPassword);

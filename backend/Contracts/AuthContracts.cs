@@ -11,6 +11,10 @@ public sealed record LoginRequest(string Email, string Password);
 
 public sealed record AdminStatusResponse(bool AdminRegistrationAvailable);
 
+public sealed record ForgotPasswordRequest(string Email);
+
+public sealed record ForgotPasswordResponse(string Message);
+
 public sealed record AuthUserResponse(
     string Id,
     string Name,

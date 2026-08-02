@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using BaroGit.Api.Contracts;
 using BaroGit.Api.Data;
+using BaroGit.Api.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +12,9 @@ namespace BaroGit.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = "Admin")]
-public sealed class UsersController(BaroGitDbContext db) : ControllerBase
+public sealed class UsersController(
+    BaroGitDbContext db,
+    IPasswordHasher<User> passwordHasher) : ControllerBase
 {
     private static readonly string[] AllowedRoles = ["Admin", "Learner"];
 
@@ -59,6 +63,27 @@ public sealed class UsersController(BaroGitDbContext db) : ControllerBase
         await db.SaveChangesAsync();
 
         return Ok(await ToResponse(user.Id));
+    }
+
+    [HttpPut("{id}/password")]
+    public async Task<IActionResult> UpdatePassword(
+        string id,
+        UpdateUserPasswordRequest request)
+    {
+        if (request.NewPassword.Length < 8)
+        {
+            return BadRequest(new { error = "Password must be at least 8 characters." });
+        }
+
+        var user = await db.Users.FindAsync(id);
+        if (user is null)
+        {
+            return NotFound(new { error = "User was not found." });
+        }
+
+        user.PasswordHash = passwordHasher.HashPassword(user, request.NewPassword);
+        await db.SaveChangesAsync();
+        return NoContent();
     }
 
     [HttpDelete("{id}")]
